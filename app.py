@@ -6,79 +6,42 @@ from gtts import gTTS
 from io import BytesIO
 from twilio.rest import Client
 import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
 from geopy.distance import geodesic
 
-# ----------------- Page config -----------------
 st.set_page_config(page_title="🚨 Smart Emergency Assistant", layout="wide")
 
-# ----------------- Styling -----------------
 st.markdown("""
 <style>
 body {background: linear-gradient(135deg,#FF6B6B,#FFD166);}
 .header {padding:20px; border-radius:15px; color:white; text-align:center;
          background: linear-gradient(135deg,#ff416c,#ffcc66); box-shadow:0 6px 20px rgba(0,0,0,0.12);}
-.card {padding:15px; border-radius:12px; color:white; margin-bottom:12px;}
-.button {width:100%; padding:12px; border-radius:12px; font-weight:bold; font-size:16px;
-         border:none; color:white; background: linear-gradient(90deg,#ff6b6b,#ff8a4b);}
 .small-muted {color:#fff;font-size:13px;}
 </style>
 """, unsafe_allow_html=True)
 
-# ----------------- Data -----------------
 CITY_COORDS = {
-    "Delhi":[28.6139,77.2090], "Mumbai":[19.0760,72.8777], "Bangalore":[12.9716,77.5946],
-    "Chennai":[13.0827,80.2707], "Kolkata":[22.5726,88.3639], "Hyderabad":[17.3850,78.4867],
-    "Pune":[18.5204,73.8567], "Ahmedabad":[23.0225,72.5714]
+    "Delhi":[28.6139,77.2090], "Mumbai":[19.0760,72.8777], "Bangalore":[12.9716,77.5946]
 }
 
 REAL_FACILITIES = {
     "Delhi": {"Hospital":[[28.6139,77.2200],[28.6200,77.2100]],
-              "Police Station":[[28.6100,77.2300],[28.6150,77.2250]],
-              "Fire Station":[[28.6180,77.2150]],
-              "Pharmacy":[[28.6140,77.2190]],
-              "Shelter":[[28.6190,77.2120]]},
+              "Police Station":[[28.6100,77.2300],[28.6150,77.2250]]},
     "Mumbai": {"Hospital":[[19.0760,72.8800],[19.0700,72.8850]],
-               "Police Station":[[19.0780,72.8750]],
-               "Fire Station":[[19.0740,72.8820]],
-               "Pharmacy":[[19.0720,72.8790]],
-               "Shelter":[[19.0770,72.8780]]},
+               "Police Station":[[19.0780,72.8750]]},
     "Bangalore": {"Hospital":[[12.9716,77.5946],[12.9750,77.5900]],
-                  "Police Station":[[12.9700,77.6000]],
-                  "Fire Station":[[12.9720,77.5950]],
-                  "Pharmacy":[[12.9730,77.5930]],
-                  "Shelter":[[12.9740,77.5960]]}
+                  "Police Station":[[12.9700,77.6000]]}
 }
 
 EMERGENCY_DB = {
-    "Fire":{"helpline":"101","icon":"🔥",
-            "do":["Move outside quickly","Stay low under smoke","Cover mouth with wet cloth"],
-            "dont":["Use elevators","Open burning windows"],
-            "places":["Fire Station","Hospital"]},
-    "Medical":{"helpline":"108","icon":"🏥",
-               "do":["Call ambulance","Check breathing","Control bleeding"],
-               "dont":["Give medicines to unconscious","Move injured"],
-               "places":["Hospital","Clinic"]},
-    "Accident":{"helpline":"108","icon":"🚑",
-                "do":["Ensure scene safety","Call emergency services","Stop bleeding"],
-                "dont":["Crowd injured","Move victims unless danger"],
-                "places":["Hospital","Police Station"]},
-    "Flood":{"helpline":"1070","icon":"🌊",
-             "do":["Move to higher ground","Switch off electricity","Follow evacuation orders"],
-             "dont":["Walk/drive through water","Ignore warnings"],
-             "places":["Shelter","Hospital"]},
-    "Earthquake":{"helpline":"112","icon":"🌍",
-                  "do":["Drop, Cover, Hold On","Stay away from glass","Move to open space"],
-                  "dont":["Use elevators","Stand near heavy objects"],
-                  "places":["Shelter","Hospital"]},
-    "Theft":{"helpline":"100","icon":"👮",
-             "do":["Move to safe place","Call police","Note suspect details"],
-             "dont":["Confront suspects","Chase alone"],
-             "places":["Police Station","Hospital"]}
+    "Fire":{"helpline":"101","icon":"🔥","do":["Move outside quickly","Stay low under smoke"],"dont":["Use elevators"],"places":["Fire Station","Hospital"]},
+    "Medical":{"helpline":"108","icon":"🏥","do":["Call ambulance","Check breathing"],"dont":["Give medicines to unconscious"],"places":["Hospital","Clinic"]},
+    "Accident":{"helpline":"108","icon":"🚑","do":["Ensure scene safety","Call emergency services"],"dont":["Move victims unless danger"],"places":["Hospital","Police Station"]},
+    "Flood":{"helpline":"1070","icon":"🌊","do":["Move to higher ground","Switch off electricity"],"dont":["Walk/drive through water"],"places":["Shelter","Hospital"]},
+    "Earthquake":{"helpline":"112","icon":"🌍","do":["Drop, Cover, Hold On","Stay away from glass"],"dont":["Use elevators"],"places":["Shelter","Hospital"]},
+    "Theft":{"helpline":"100","icon":"👮","do":["Move to safe place","Call police"],"dont":["Confront suspects"],"places":["Police Station","Hospital"]}
 }
 
-# ----------------- Functions -----------------
 @st.cache_data(ttl=300)
 def generate_nearby_real(city, selected_places):
     facilities = {}
@@ -86,11 +49,8 @@ def generate_nearby_real(city, selected_places):
         coords_list = REAL_FACILITIES.get(city, {}).get(place_type, [])
         for i, coord in enumerate(coords_list):
             name = f"{place_type} {i+1}"
-            facilities[name] = {
-                "coord": coord,
-                "contact": f"+91-{random.randint(90000,99999)}{random.randint(1000,9999)}",
-                "url": f"https://www.google.com/maps/search/?api=1&query={coord[0]},{coord[1]}"
-            }
+            facilities[name] = {"coord": coord, "contact": f"+91-{random.randint(90000,99999)}{random.randint(1000,9999)}",
+                                "url": f"https://www.google.com/maps/search/?api=1&query={coord[0]},{coord[1]}"}
     return facilities
 
 @st.cache_data
@@ -113,11 +73,9 @@ def send_emergency_sms(contacts, city, lat, lon, emergency_type, instructions):
     except Exception as e:
         st.error(f"Failed to send SMS: {e}")
 
-# ----------------- Header -----------------
 st.markdown(f'<div class="header"><h2>🚨 Smart Emergency & Safety Assistant</h2>'
             f'<div class="small-muted">Real-time Help • {", ".join([em["icon"] for em in EMERGENCY_DB.values()])}</div></div>', unsafe_allow_html=True)
 
-# ----------------- Sidebar -----------------
 with st.sidebar:
     st.header("Emergency Controls")
     city = st.selectbox("City", list(CITY_COORDS.keys()))
@@ -125,33 +83,27 @@ with st.sidebar:
     emergency_type = st.radio("Emergency Type", list(EMERGENCY_DB.keys()))
     severity = st.radio("Severity", ["Low","Medium","High","Critical"])
     st.markdown("## Nearby Facilities Filter")
-    selected_places = st.multiselect("Select facility types", ["Hospital","Clinic","Police Station","Fire Station","Pharmacy","Shelter"], default=["Hospital","Clinic","Police Station"])
+    selected_places = st.multiselect("Select facility types", ["Hospital","Clinic","Police Station","Fire Station","Pharmacy","Shelter"], default=["Hospital","Police Station"])
     st.markdown("## Emergency SMS")
     contacts_input = st.text_area("Enter phone numbers (comma separated)", "+919876543210")
     if st.button("📩 Send Emergency SMS"):
         if contacts_input:
             contacts = [c.strip() for c in contacts_input.split(",")]
             send_emergency_sms(contacts, city, CITY_COORDS[city][0], CITY_COORDS[city][1], emergency_type, EMERGENCY_DB[emergency_type]['do'])
-            st.success("Emergency SMS sent to your contacts!")
+            st.success("Emergency SMS sent!")
         else:
-            st.warning("Please enter at least one phone number.")
+            st.warning("Enter at least one phone number.")
     if st.button("🔴 PANIC ALERT"):
         st.warning("Panic Activated! Call local emergency services immediately.")
-    if st.button("🚑 Book Ambulance (ETA 10min)"):
+    if st.button("🚑 Book Ambulance"):
         st.success("Ambulance booked! ETA: 10 minutes.")
 
-# ----------------- Animated TO DO / NOT TO DO -----------------
 db = EMERGENCY_DB[emergency_type]
 st.markdown(f"### {db['icon']} {emergency_type} Emergency | Helpline: {db['helpline']}")
 with st.expander("✔️ What TO DO / ✖️ What NOT TO DO"):
-    for d in db["do"]:
-        st.markdown(f"✅ {d}")
-        time.sleep(0.1)
-    for d in db["dont"]:
-        st.markdown(f"❌ {d}")
-        time.sleep(0.1)
+    for d in db["do"]: st.markdown(f"✅ {d}"); time.sleep(0.2)
+    for d in db["dont"]: st.markdown(f"❌ {d}"); time.sleep(0.2)
 
-# ----------------- Map -----------------
 lat, lon = CITY_COORDS[city]
 nearby = generate_nearby_real(city, selected_places)
 m = folium.Map(location=[lat, lon], zoom_start=13)
@@ -163,34 +115,13 @@ for i,(name,data) in enumerate(nearby.items()):
                   icon=folium.Icon(color=colors[i%len(colors)])).add_to(m)
 st_folium(m, width=720, height=400)
 
-# ----------------- Data Analysis -----------------
-st.markdown("### 📊 Data Analysis of Nearby Facilities")
-facilities_list = []
-for name, data in nearby.items():
-    distance = round(geodesic([lat, lon], data["coord"]).km, 2)
-    facilities_list.append({"Name": name, "Type": name.split()[0], "Distance (km)": distance})
-df = pd.DataFrame(facilities_list)
-st.dataframe(df)
-
-# Plot number of each facility type
-fig, ax = plt.subplots()
-df['Type'].value_counts().plot(kind='bar', ax=ax, color='skyblue')
-ax.set_title(f"Facility Count in {city}")
-ax.set_xlabel("Facility Type")
-ax.set_ylabel("Count")
-st.pyplot(fig)
-
-# ----------------- Voice Guidance -----------------
 advice = f"{emergency_type} emergency. Call {db['helpline']}. " + " ".join(db['do'])
 col1, col2 = st.columns(2)
 if col1.button("▶️ Play Guidance"):
-    audio_bytes = make_tts(advice, lang="hi" if lang=="Hindi" else "en")
-    st.audio(audio_bytes, format="audio/mp3")
+    st.audio(make_tts(advice, lang="hi" if lang=="Hindi" else "en"), format="audio/mp3")
 if col2.button("⬇️ Download MP3"):
-    audio_bytes = make_tts(advice, lang="hi" if lang=="Hindi" else "en")
-    st.download_button(label="Download MP3", data=audio_bytes, file_name=f"{emergency_type}_guidance.mp3", mime="audio/mp3")
+    st.download_button("Download MP3", data=make_tts(advice, lang="hi" if lang=="Hindi" else "en"), file_name=f"{emergency_type}_guidance.mp3", mime="audio/mp3")
 
-# ----------------- Quick Transport -----------------
 st.markdown("### 🚖 Quick Transport / Emergency Contacts")
 c1,c2,c3=st.columns(3)
 c1.markdown(f"[🚕 Book Ola](https://www.olacabs.com/)")
@@ -198,4 +129,29 @@ c2.markdown(f"[🚗 Book Uber](https://www.uber.com/in/en/)")
 c3.markdown(f"☎️ Ambulance: {db['helpline']}")
 
 st.markdown("---")
-st.markdown("Made with ❤️ • Always update local helplines")
+st.markdown("## 📊 Emergency Data Analytics")
+
+emergency_logs = pd.DataFrame({
+    "City": ["Delhi","Mumbai","Bangalore","Delhi","Mumbai","Delhi"],
+    "Emergency": ["Fire","Medical","Accident","Fire","Theft","Medical"],
+    "Timestamp": pd.date_range(start="2025-01-01", periods=6, freq="D")
+})
+
+st.subheader("Emergency Type Count")
+fig1, ax1 = plt.subplots()
+emergency_logs.groupby("Emergency").size().plot(kind="bar", color="orange", ax=ax1)
+ax1.set_ylabel("Number of Cases")
+st.pyplot(fig1)
+
+st.subheader("City-wise Emergency Count")
+fig2, ax2 = plt.subplots()
+emergency_logs.groupby("City").size().plot(kind="pie", autopct="%1.1f%%", ax=ax2)
+st.pyplot(fig2)
+
+def nearest_facility(user_coord, facilities):
+    distances = {name: geodesic(user_coord, data["coord"]).km for name, data in facilities.items()}
+    nearest = min(distances, key=distances.get)
+    return nearest, distances[nearest]
+
+nearest_name, nearest_dist = nearest_facility([lat, lon], nearby)
+st.write(f"Nearest facility to city center: **{nearest_name}** ({nearest_dist:.2f} km)")
