@@ -5,6 +5,10 @@ from streamlit_folium import st_folium
 from gtts import gTTS
 from io import BytesIO
 from twilio.rest import Client
+import pandas as pd
+import matplotlib.pyplot as plt
+from geopy.distance import geodesic
+from collections import Counter
 
 # ----------------- Page config -----------------
 st.set_page_config(page_title="🚨 Smart Emergency Assistant", layout="wide")
@@ -109,6 +113,41 @@ def send_emergency_sms(contacts, city, lat, lon, emergency_type, instructions):
     except Exception as e:
         st.error(f"Failed to send SMS: {e}")
 
+# --------- DATA ANALYSIS FUNCTIONS ---------
+@st.cache_data
+def facility_density_analysis():
+    data = {}
+    for city, facilities in REAL_FACILITIES.items():
+        data[city] = {ftype: len(coords) for ftype, coords in facilities.items()}
+    return pd.DataFrame(data).T
+
+def nearest_facility_distance(city, facility_type, user_coord):
+    coords_list = REAL_FACILITIES.get(city, {}).get(facility_type, [])
+    if not coords_list:
+        return None
+    distances = [geodesic(user_coord, coord).km for coord in coords_list]
+    return round(min(distances), 2)
+
+@st.cache_data
+def simulate_emergencies(n=100):
+    emergencies = [random.choice(list(EMERGENCY_DB.keys())) for _ in range(n)]
+    counter = Counter(emergencies)
+    return pd.DataFrame(counter.items(), columns=["Emergency Type", "Count"])
+
+def plot_facility_density(df):
+    st.subheader("Facility Density per City")
+    df.plot(kind="bar", figsize=(10,5))
+    plt.xlabel("City")
+    plt.ylabel("Number of Facilities")
+    plt.xticks(rotation=45)
+    st.pyplot(plt)
+
+def plot_emergency_frequency(df):
+    st.subheader("Simulated Emergency Type Frequency")
+    df.set_index("Emergency Type").plot(kind="bar", figsize=(8,4), color="orange")
+    plt.ylabel("Count")
+    st.pyplot(plt)
+
 # ----------------- Header -----------------
 st.markdown(f'<div class="header"><h2>🚨 Smart Emergency & Safety Assistant</h2>'
             f'<div class="small-muted">Real-time Help • {", ".join([em["icon"] for em in EMERGENCY_DB.values()])}</div></div>', unsafe_allow_html=True)
@@ -135,6 +174,22 @@ with st.sidebar:
         st.warning("Panic Activated! Call local emergency services immediately.")
     if st.button("🚑 Book Ambulance (ETA 10min)"):
         st.success("Ambulance booked! ETA: 10 minutes.")
+
+    # ---------- DATA ANALYSIS OPTIONS ----------
+    st.markdown("## 📊 Data Analysis Options")
+    if st.checkbox("Show Facility Density Analysis"):
+        df_facility = facility_density_analysis()
+        st.dataframe(df_facility)
+        plot_facility_density(df_facility)
+    if st.checkbox("Show Emergency Frequency Analysis"):
+        df_emergency = simulate_emergencies()
+        st.dataframe(df_emergency)
+        plot_emergency_frequency(df_emergency)
+    if st.checkbox("Nearest Facility Distance"):
+        for ftype in selected_places:
+            dist = nearest_facility_distance(city, ftype, CITY_COORDS[city])
+            if dist:
+                st.write(f"Nearest {ftype} is approximately **{dist} km** from city center.")
 
 # ----------------- Animated TO DO / NOT TO DO -----------------
 db = EMERGENCY_DB[emergency_type]
