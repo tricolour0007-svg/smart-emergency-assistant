@@ -1,4 +1,6 @@
 streamlit==1.51.0
 folium==0.20.0
 streamlit-folium==0.25.3
-pandas
+gtts==2.5.4
+requests
+
