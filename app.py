@@ -1,87 +1,95 @@
 import streamlit as st
-import folium
-from streamlit_folium import st_folium
+import pandas as pd
 
-# --- Page Setup ---
+# --- PAGE CONFIG ---
 st.set_page_config(page_title="Smart Emergency Assistant", page_icon="🚨", layout="wide")
 
-# --- CSS Styling ---
+# --- STYLING ---
 st.markdown("""
 <style>
 [data-testid="stAppViewContainer"] {
-    background: linear-gradient(120deg,#ff4b4b,#ff9900,#ffc300);
+    background: linear-gradient(135deg, #ff512f, #dd2476);
     background-attachment: fixed;
 }
 .main {
-    background: rgba(255,255,255,0.85);
-    border-radius: 20px;
-    padding: 30px;
-    box-shadow: 0 0 25px rgba(0,0,0,0.1);
+    background: rgba(255,255,255,0.92);
+    border-radius: 25px;
+    padding: 40px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.2);
 }
 .stButton>button {
     width: 100%;
-    background: linear-gradient(90deg,#ff4b4b,#ff9900);
     border: none;
     color: white;
+    font-size: 18px;
+    font-weight: bold;
+    background: linear-gradient(90deg, #ff4b1f, #ff9068);
     border-radius: 12px;
     height: 3em;
-    font-size: 18px !important;
-    transition: all 0.3s ease;
+    transition: 0.3s;
 }
 .stButton>button:hover {
     transform: scale(1.05);
-    background: linear-gradient(90deg,#ff9900,#ff4b4b);
+    background: linear-gradient(90deg, #ff9068, #ff4b1f);
 }
 .card {
-    background: #fffaf0;
+    background: white;
     padding: 15px;
     border-radius: 15px;
-    box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     margin-bottom: 10px;
 }
-h1 {text-align:center; color:white;}
-h3 {color:#ff4b4b;}
+h1 { text-align:center; color:white; }
+h3 { color:#ff4b1f; }
 </style>
 """, unsafe_allow_html=True)
 
-# --- Header ---
+# --- HEADER ---
 st.markdown("<h1>🚨 Smart Emergency Assistant</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align:center;color:white;'>AI-powered help with live maps and verified helplines</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align:center;color:white;'>Your one-stop platform for quick, verified help during emergencies.</p>", unsafe_allow_html=True)
 
-# --- User Inputs ---
-st.markdown("### 🧭 Enter Your Details")
+# --- INPUTS ---
 col1, col2 = st.columns(2)
-city = col1.text_input("🏙️ City", placeholder="e.g. Delhi, Mumbai, Bengaluru")
-emergency = col2.selectbox("⚠️ Select Emergency Type",
-                           ["Select...", "Fire", "Medical", "Police", "Flood", "Earthquake", "Accident"])
+city = col1.text_input("🏙️ Enter City", placeholder="e.g., Delhi, Mumbai, Chennai")
+etype = col2.selectbox("⚠️ Select Emergency Type", 
+                       ["Select...", "Medical", "Fire", "Police", "Accident", "Flood", "Earthquake"])
 
-# --- Main Functionality ---
-if city and emergency != "Select...":
-    st.success(f"✅ Help information for {emergency} emergency in {city}")
+# --- ACTION ---
+if city and etype != "Select...":
+    st.success(f"Showing emergency resources for {etype} in {city}")
 
-    # Map (Lightweight)
-    m = folium.Map(location=[20.5937, 78.9629], zoom_start=5)
-    folium.Marker([28.6139,77.2090], popup="Nearest Facility 🏥", icon=folium.Icon(color="red")).add_to(m)
-    st_folium(m, width=700, height=450, returned_objects=[])
+    # --- Light map using Streamlit built-in ---
+    st.markdown("### 🗺️ Nearby Emergency Centers (approximate)")
+    data = pd.DataFrame({
+        'lat': [28.61, 19.07, 13.08, 22.57],
+        'lon': [77.23, 72.87, 80.27, 88.36],
+    })
+    st.map(data, zoom=4)
 
-    # Emergency Information
-    st.markdown("### 🚨 Emergency Info")
+    # --- Info Cards ---
+    st.markdown("### 📞 Emergency Contacts")
     info = {
+        "Medical": ("🏥 Ambulance", "102 / 108", "Apply first aid and stay calm."),
         "Fire": ("🔥 Fire Department", "101", "Evacuate immediately and avoid elevators."),
-        "Medical": ("🏥 Ambulance", "102 / 108", "Apply first aid and call medical help."),
-        "Police": ("👮 Police", "100", "Stay safe and report immediately."),
-        "Flood": ("🌊 Disaster Helpline", "1078", "Move to higher ground and avoid water."),
-        "Earthquake": ("🌍 Helpline", "112", "Drop, cover, and hold until shaking stops."),
-        "Accident": ("🚓 Traffic Helpline", "103", "Call ambulance and document details safely.")
+        "Police": ("👮 Police", "100", "Stay safe and cooperate with authorities."),
+        "Accident": ("🚗 Traffic Helpline", "103", "Call ambulance and document the scene."),
+        "Flood": ("🌊 Disaster Helpline", "1078", "Move to higher ground immediately."),
+        "Earthquake": ("🌍 Emergency", "112", "Drop, cover, and hold until shaking stops.")
     }
 
-    title, contact, tip = info[emergency]
-    st.markdown(f"<div class='card'><h3>{title}</h3><b>Helpline:</b> {contact}<br><b>Tips:</b> {tip}</div>", unsafe_allow_html=True)
+    title, helpline, tip = info[etype]
+    st.markdown(f"""
+        <div class='card'>
+            <h3>{title}</h3>
+            <b>Helpline:</b> {helpline}<br>
+            <b>Tip:</b> {tip}
+        </div>
+    """, unsafe_allow_html=True)
 
-    # Quick Transport Links
+    # --- Transport Links ---
     st.markdown("### 🚖 Quick Transport Links")
     colA, colB = st.columns(2)
     colA.link_button("🚕 Book Ola", "https://www.olacabs.com/")
     colB.link_button("🚗 Book Uber", "https://www.uber.com/in/en/")
 
-st.markdown("<hr><p style='text-align:center;color:gray;'>Developed with ❤️ using Streamlit • Stay Safe</p>", unsafe_allow_html=True)
+st.markdown("<hr><p style='text-align:center;color:gray;'>Made with ❤️ using Streamlit — Stay Safe</p>", unsafe_allow_html=True)
