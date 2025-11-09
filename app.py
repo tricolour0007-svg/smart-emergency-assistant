@@ -1,12 +1,13 @@
 import streamlit as st
-import folium, random
+import folium
 from streamlit_folium import st_folium
+import random
 from gtts import gTTS
 from io import BytesIO
-from base64 import b64encode
+import base64
 
 # --------------------------
-# 🗺️ City Coordinates
+# 🌍 City Coordinates
 # --------------------------
 CITY_COORDS = {
     "Delhi": [28.6139, 77.2090],
@@ -80,18 +81,19 @@ EMERGENCY_INFO = {
 }
 
 # --------------------------
-# 🗣️ Voice Assistant
+# 🎙️ Voice Helper
 # --------------------------
-def speak(text):
+def speak_text(text):
     tts = gTTS(text=text, lang='en')
-    fp = BytesIO()
-    tts.write_to_fp(fp)
-    fp.seek(0)
-    audio_bytes = fp.read()
-    st.audio(audio_bytes, format="audio/mp3")
+    mp3_fp = BytesIO()
+    tts.write_to_fp(mp3_fp)
+    mp3_fp.seek(0)
+    b64 = base64.b64encode(mp3_fp.read()).decode()
+    audio_html = f'<audio autoplay="true" src="data:audio/mp3;base64,{b64}"></audio>'
+    st.markdown(audio_html, unsafe_allow_html=True)
 
 # --------------------------
-# 🏥 Generate Facilities
+# 🏥 Facility Generator
 # --------------------------
 def generate_facilities(lat, lon, facility_list):
     facilities = {}
@@ -106,44 +108,59 @@ def generate_facilities(lat, lon, facility_list):
     return facilities
 
 # --------------------------
-# 🌟 Streamlit UI
+# 🎨 App Layout
 # --------------------------
-st.set_page_config(page_title="Smart Emergency Assistant", layout="wide")
+st.set_page_config(page_title="Smart Emergency Assistant", page_icon="🚨", layout="wide")
 
-st.markdown("<h1 style='text-align:center;color:red;'>🚨 Smart Emergency & Safety Assistant 🚨</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align:center;color:red;'>🚨 Smart Emergency & Safety Assistant</h1>", unsafe_allow_html=True)
 
-city = st.selectbox("🏙️ Select your city:", list(CITY_COORDS.keys()))
-emergency = st.selectbox("⚠️ Select type of emergency:", list(EMERGENCY_INFO.keys()))
+col1, col2 = st.columns(2)
 
-if st.button("🔍 Get Emergency Assistance"):
-    lat, lon = CITY_COORDS.get(city, [28.6139, 77.2090])
+with col1:
+    city = st.selectbox("🏙️ Select Your City", list(CITY_COORDS.keys()))
+with col2:
+    emergency = st.selectbox("⚠️ Select Emergency Type", list(EMERGENCY_INFO.keys()))
+
+if st.button("🆘 Generate Assistance"):
+    lat, lon = CITY_COORDS[city]
     info = EMERGENCY_INFO[emergency]
-
-    st.success(f"📍 Detected Location: {city}")
-    speak(f"Detected your location in {city}")
-
-    nearby = generate_facilities(lat, lon, info["places"])
-
-    st.subheader("🏥 Nearby Facilities")
-    for name, data in nearby.items():
-        st.markdown(f"**{name}** — ☎️ {data['contact']} — [📍 Open in Google Maps]({data['url']})")
-    speak(f"Nearby facilities include {', '.join(nearby.keys())}.")
-
-    st.subheader("✅ Safety Instructions")
-    for step in info["message"]:
-        st.markdown(f"- {step}")
-    speak(" ".join(info["message"]))
-
-    st.subheader("📞 Emergency Contacts")
+    
+    st.success(f"📍 Location detected: {city}")
+    speak_text(f"Detected your location in {city}. Providing help for {emergency}.")
+    
+    # Display safety instructions
+    st.markdown("### ✅ Safety Instructions")
+    for msg in info["message"]:
+        st.markdown(f"- {msg}")
+    speak_text(" ".join(info['message']))
+    
+    # Display emergency contacts
+    st.markdown("### 📞 Emergency Contacts")
     for name, num in info["contacts"].items():
         st.markdown(f"**{name}:** {num}")
-    speak("Emergency contact numbers displayed on screen.")
-
+    
+    # Nearby Facilities
+    st.markdown("### 🏥 Nearby Facilities")
+    nearby = generate_facilities(lat, lon, info["places"])
+    for name, data in nearby.items():
+        st.markdown(f"- **{name}** | ☎️ {data['contact']} | [📍 Open in Google Maps]({data['url']})")
+    
+    # Transport Options
+    st.markdown("### 🚗 Transport Options")
+    st.markdown(", ".join(info["transport"]))
+    
     # Map
+    st.markdown("### 🗺️ Emergency Map")
     m = folium.Map(location=[lat, lon], zoom_start=14)
     folium.Marker([lat, lon], popup="📍 You Are Here", icon=folium.Icon(color="green")).add_to(m)
-    for name, data in nearby.items():
-        folium.Marker(location=data["coord"],
-                      popup=f"<b>{name}</b><br>☎️ {data['contact']}",
-                      icon=folium.Icon(color="red")).add_to(m)
-    st_data = st_folium(m, width=700, height=450)
+    colors = ["red", "blue", "purple", "orange", "darkred", "cadetblue"]
+    for i, (name, data) in enumerate(nearby.items()):
+        folium.Marker(
+            location=data["coord"],
+            popup=f"<b>{name}</b><br>☎️ {data['contact']}<br><a href='{data['url']}' target='_blank'>Open in Google Maps</a>",
+            icon=folium.Icon(color=colors[i % len(colors)])
+        ).add_to(m)
+    st_folium(m, width=700, height=450)
+
+st.markdown("---")
+st.markdown("<p style='text-align:center;'>💡 Stay calm, stay safe. Help is on the way.</p>", unsafe_allow_html=True)
