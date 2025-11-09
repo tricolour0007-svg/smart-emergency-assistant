@@ -30,42 +30,48 @@ CITY_COORDS = {
 }
 
 REAL_FACILITIES = {
-    "Delhi": {
-        "Hospital": [[28.6139,77.2200],[28.6200,77.2100]],
-        "Police Station": [[28.6100,77.2300],[28.6150,77.2250]],
-        "Fire Station": [[28.6180,77.2150]],
-        "Pharmacy": [[28.6140,77.2190]],
-        "Shelter": [[28.6190,77.2120]]
-    },
-    "Mumbai": {
-        "Hospital": [[19.0760,72.8800],[19.0700,72.8850]],
-        "Police Station": [[19.0780,72.8750]],
-        "Fire Station": [[19.0740,72.8820]],
-        "Pharmacy": [[19.0720,72.8790]],
-        "Shelter": [[19.0770,72.8780]]
-    },
-    "Bangalore": {
-        "Hospital": [[12.9716,77.5946],[12.9750,77.5900]],
-        "Police Station": [[12.9700,77.6000]],
-        "Fire Station": [[12.9720,77.5950]],
-        "Pharmacy": [[12.9730,77.5930]],
-        "Shelter": [[12.9740,77.5960]]
-    }
+    "Delhi": {"Hospital":[[28.6139,77.2200],[28.6200,77.2100]],
+              "Police Station":[[28.6100,77.2300],[28.6150,77.2250]],
+              "Fire Station":[[28.6180,77.2150]],
+              "Pharmacy":[[28.6140,77.2190]],
+              "Shelter":[[28.6190,77.2120]]},
+    "Mumbai": {"Hospital":[[19.0760,72.8800],[19.0700,72.8850]],
+               "Police Station":[[19.0780,72.8750]],
+               "Fire Station":[[19.0740,72.8820]],
+               "Pharmacy":[[19.0720,72.8790]],
+               "Shelter":[[19.0770,72.8780]]},
+    "Bangalore": {"Hospital":[[12.9716,77.5946],[12.9750,77.5900]],
+                  "Police Station":[[12.9700,77.6000]],
+                  "Fire Station":[[12.9720,77.5950]],
+                  "Pharmacy":[[12.9730,77.5930]],
+                  "Shelter":[[12.9740,77.5960]]}
 }
 
 EMERGENCY_DB = {
-    "Fire": {"helpline":"101","icon":"🔥","do":["Move outside quickly","Stay low under smoke","Cover mouth with wet cloth"],
-             "dont":["Use elevators","Open burning windows"],"places":["Fire Station","Hospital"]},
-    "Medical": {"helpline":"108","icon":"🏥","do":["Call ambulance","Check breathing","Control bleeding"],
-                "dont":["Give medicines to unconscious","Move injured"],"places":["Hospital","Clinic"]},
-    "Accident": {"helpline":"108","icon":"🚑","do":["Ensure scene safety","Call emergency services","Stop bleeding"],
-                 "dont":["Crowd injured","Move victims unless danger"],"places":["Hospital","Police Station"]},
-    "Flood": {"helpline":"1070","icon":"🌊","do":["Move to higher ground","Switch off electricity","Follow evacuation orders"],
-              "dont":["Walk/drive through water","Ignore warnings"],"places":["Shelter","Hospital"]},
-    "Earthquake": {"helpline":"112","icon":"🌍","do":["Drop, Cover, Hold On","Stay away from glass","Move to open space"],
-                   "dont":["Use elevators","Stand near heavy objects"],"places":["Shelter","Hospital"]},
-    "Theft": {"helpline":"100","icon":"👮","do":["Move to safe place","Call police","Note suspect details"],
-              "dont":["Confront suspects","Chase alone"],"places":["Police Station","Hospital"]}
+    "Fire":{"helpline":"101","icon":"🔥",
+            "do":["Move outside quickly","Stay low under smoke","Cover mouth with wet cloth"],
+            "dont":["Use elevators","Open burning windows"],
+            "places":["Fire Station","Hospital"]},
+    "Medical":{"helpline":"108","icon":"🏥",
+               "do":["Call ambulance","Check breathing","Control bleeding"],
+               "dont":["Give medicines to unconscious","Move injured"],
+               "places":["Hospital","Clinic"]},
+    "Accident":{"helpline":"108","icon":"🚑",
+                "do":["Ensure scene safety","Call emergency services","Stop bleeding"],
+                "dont":["Crowd injured","Move victims unless danger"],
+                "places":["Hospital","Police Station"]},
+    "Flood":{"helpline":"1070","icon":"🌊",
+             "do":["Move to higher ground","Switch off electricity","Follow evacuation orders"],
+             "dont":["Walk/drive through water","Ignore warnings"],
+             "places":["Shelter","Hospital"]},
+    "Earthquake":{"helpline":"112","icon":"🌍",
+                  "do":["Drop, Cover, Hold On","Stay away from glass","Move to open space"],
+                  "dont":["Use elevators","Stand near heavy objects"],
+                  "places":["Shelter","Hospital"]},
+    "Theft":{"helpline":"100","icon":"👮",
+             "do":["Move to safe place","Call police","Note suspect details"],
+             "dont":["Confront suspects","Chase alone"],
+             "places":["Police Station","Hospital"]}
 }
 
 # ----------------- Functions -----------------
@@ -134,14 +140,12 @@ with st.sidebar:
 db = EMERGENCY_DB[emergency_type]
 st.markdown(f"### {db['icon']} {emergency_type} Emergency | Helpline: {db['helpline']}")
 with st.expander("✔️ What TO DO / ✖️ What NOT TO DO"):
-    placeholder_do = st.empty()
     for d in db["do"]:
-        placeholder_do.markdown(f"✅ {d}")
-        time.sleep(0.3)
-    placeholder_dont = st.empty()
+        st.markdown(f"✅ {d}")
+        time.sleep(0.2)
     for d in db["dont"]:
-        placeholder_dont.markdown(f"❌ {d}")
-        time.sleep(0.3)
+        st.markdown(f"❌ {d}")
+        time.sleep(0.2)
 
 # ----------------- Map -----------------
 lat, lon = CITY_COORDS[city]
@@ -160,11 +164,10 @@ advice = f"{emergency_type} emergency. Call {db['helpline']}. " + " ".join(db['d
 col1, col2 = st.columns(2)
 if col1.button("▶️ Play Guidance"):
     audio_bytes = make_tts(advice, lang="hi" if lang=="Hindi" else "en")
-    if audio_bytes: st.audio(audio_bytes, format="audio/mp3")
+    st.audio(audio_bytes, format="audio/mp3")
 if col2.button("⬇️ Download MP3"):
     audio_bytes = make_tts(advice, lang="hi" if lang=="Hindi" else "en")
-    if audio_bytes:
-        st.download_button(label="Download MP3", data=audio_bytes, file_name=f"{emergency_type}_guidance.mp3", mime="audio/mp3")
+    st.download_button(label="Download MP3", data=audio_bytes, file_name=f"{emergency_type}_guidance.mp3", mime="audio/mp3")
 
 # ----------------- Quick Transport -----------------
 st.markdown("### 🚖 Quick Transport / Emergency Contacts")
