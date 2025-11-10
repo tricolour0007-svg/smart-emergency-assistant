@@ -1,1 +1,1 @@
-python-3.10.13
+https://github.com/tricolour0007-svg/smart-emergency-assistant/tree/mainpython-3.11
